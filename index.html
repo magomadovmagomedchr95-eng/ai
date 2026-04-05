@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Гибридный ИИ-помощник | Поиск в интернете + свои знания</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo-wrapper">
+                <div class="ai-icon">🧠🌐</div>
+                <h1>Гибридный ИИ Assistant</h1>
+            </div>
+            <p class="subtitle">Отвечает сам на простые вопросы, сложные ищет в интернете (Wikipedia)</p>
+        </header>
+
+        <main class="main-content">
+            <div class="search-section">
+                <div class="input-group">
+                    <textarea 
+                        id="queryInput" 
+                        placeholder="Например: 'Привет', 'Кто ты?', 'Сколько будет 2+2?' или 'Квантовая физика'..."
+                        rows="3"
+                        maxlength="500"
+                    ></textarea>
+                    <button id="searchButton" class="search-btn">
+                        <span class="btn-text">Спросить ИИ</span>
+                        <span class="btn-icon">🤖</span>
+                    </button>
+                </div>
+                <div class="suggestions">
+                    <span>Примеры для ИИ (ответит сам):</span>
+                    <button class="suggestion-chip" data-query="Привет">Привет</button>
+                    <button class="suggestion-chip" data-query="Кто тебя создал?">Кто тебя создал?</button>
+                    <button class="suggestion-chip" data-query="Что такое любовь?">Что такое любовь?</button>
+                    <button class="suggestion-chip" data-query="Погода сегодня">Погода</button>
+                    <span style="margin-left: 8px;">🌍 Поиск в интернете:</span>
+                    <button class="suggestion-chip" data-query="Искусственный интеллект">ИИ</button>
+                    <button class="suggestion-chip" data-query="История Рима">Рим</button>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <div class="result-header">
+                    <h2>🤖 Ответ ИИ</h2>
+                    <div id="answerSourceBadge" class="source-badge">Гибридный режим</div>
+                </div>
+                <div id="resultContainer" class="result-container">
+                    <div class="placeholder-message">
+                        <div class="placeholder-icon">💬</div>
+                        <p>Задайте любой вопрос. Я отвечу сам, если смогу, или найду в интернете через Wikipedia.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="app-footer">
+            <p>⚡ ИИ отвечает самостоятельно на частые вопросы, а сложные темы ищет в актуальных данных Wikipedia.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
