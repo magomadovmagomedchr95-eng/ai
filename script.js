@@ -1,6 +1,6 @@
 // ========== НАСТРОЙКА GOOGLE PSE (ваши данные) ==========
 const GOOGLE_CX = '33e260eedb53248e1';
-const GOOGLE_API_KEY = 'AIzaSyCcHA8f8qXWSmWhfIi1W88Yksbm55DUIBc';
+const GOOGLE_API_KEY = 'AIzaSyD-TEST-KEY-FOR-DEMO-ONLY';
 
 // ========== DOM ЭЛЕМЕНТЫ ==========
 const searchBtn = document.getElementById('searchButton');
