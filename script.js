@@ -1,5 +1,4 @@
-// ========== НАСТРОЙКА DUCKDUCKGO (без API-ключа) ==========
-// Используем бесплатный CORS-прокси для обхода ограничений DuckDuckGo
+// ========== DUCKDUCKGO ПОИСК (без API-ключа) ==========
 const CORS_PROXY = 'https://corsproxy.io/?';
 const DDG_API_URL = 'https://api.duckduckgo.com/';
 
@@ -10,42 +9,24 @@ const resultContainer = document.getElementById('resultContainer');
 const answerSourceBadge = document.getElementById('answerSourceBadge');
 const suggestionChips = document.querySelectorAll('.suggestion-chip');
 
-// ========== ЛОКАЛЬНЫЕ ЗНАНИЯ ИИ (отвечает сам без интернета) ==========
+// ========== ЛОКАЛЬНЫЕ ЗНАНИЯ ИИ ==========
 function getLocalAnswer(query) {
     const q = query.toLowerCase().trim();
     
-    // Приветствия
-    if (q.match(/^(привет|здравствуй|здравствуйте|hello|hi|hey|добрый день|добрый вечер|доброе утро)/i)) {
-        return "Привет! Я гибридный ИИ. Могу поболтать, дать совет или найти информацию в интернете через DuckDuckGo. Чем помочь?";
+    if (q.match(/^(привет|здравствуй|hello|hi)/i)) {
+        return "Привет! Я ИИ-помощник. Могу ответить сам или найти в интернете через DuckDuckGo. Чем помочь?";
     }
-    
-    // Прощания
-    if (q.match(/(пока|до свидания|увидимся|bye|goodbye)/i)) {
-        return "Пока! Заходи ещё. 😊";
+    if (q.match(/(как дела|как жизнь)/i)) {
+        return "У меня всё отлично! А у тебя как?";
     }
-    
-    // Как дела
-    if (q.match(/(как дела|как твои дела|как у тебя дела|как жизнь|как поживаешь|как настроение)/i)) {
-        return "У меня всё отлично! Я всегда рад помочь. А у тебя как дела?";
+    if (q.match(/(кто ты|что ты умеешь)/i)) {
+        return "Я — ИИ-помощник. Отвечаю на простые вопросы сам, а сложные ищу в интернете через DuckDuckGo.";
     }
-    
-    // Что делаешь
-    if (q.match(/(что делаешь|чем занимаешься|что ты делаешь)/i)) {
-        return "Я сейчас отвечаю на твои вопросы. А ты чем занят?";
-    }
-    
-    // Кто ты / о себе
-    if (q.match(/(кто ты|твоё имя|расскажи о себе|что ты умеешь|твои возможности|откуда ты|кто тебя создал)/i)) {
-        return "Я — гибридный ИИ-помощник. Умею отвечать на простые вопросы сам (приветствия, математика, время, шутки, советы, даты), а если не знаю — ищу информацию в интернете через DuckDuckGo. Чем могу помочь?";
-    }
-    
-    // Благодарности
-    if (q.match(/(спасибо|благодарю|thanks|thank you)/i)) {
+    if (q.match(/(спасибо|благодарю)/i)) {
         return "Пожалуйста! Обращайся ещё :)";
     }
     
-    // Математика
-    const mathMatch = q.match(/(?:сколько будет|вычисли|посчитай|)(\d+)\s*([+\-*/])\s*(\d+)/i);
+    const mathMatch = q.match(/(\d+)\s*([+\-*/])\s*(\d+)/i);
     if (mathMatch) {
         const a = parseFloat(mathMatch[1]);
         const op = mathMatch[2];
@@ -59,272 +40,133 @@ function getLocalAnswer(query) {
             default: result = 'не могу вычислить';
         }
         if (typeof result === 'number') result = Math.round(result * 100) / 100;
-        return `🧮 Результат: ${a} ${op} ${b} = ${result}`;
+        return `Результат: ${a} ${op} ${b} = ${result}`;
     }
     
-    // Время
-    if (q.match(/(который час|текущее время|сколько времени|скажи время|часы|минуты)/i)) {
-        const now = new Date();
-        return `🕐 Сейчас ${now.toLocaleTimeString()}. Точное время по твоему устройству.`;
+    if (q.match(/(который час|сколько времени)/i)) {
+        return `Сейчас ${new Date().toLocaleTimeString()}`;
     }
     
-    // Дата
-    if (q.match(/(какая сегодня дата|сегодняшнее число|какой сегодня день|день недели)/i)) {
-        const now = new Date();
-        return `📅 Сегодня ${now.toLocaleDateString()}, ${now.toLocaleString('ru', { weekday: 'long' })}.`;
-    }
-    
-    // Шутки
-    if (q.match(/(расскажи шутку|пошути|смешное|анекдот)/i)) {
+    if (q.match(/(расскажи шутку|пошути)/i)) {
         const jokes = [
             "Почему программисты путают Хэллоуин и Рождество? Потому что 31 Oct = 25 Dec.",
-            "— Алло, это ИИ? — Нет, это служба поддержки. Но я тоже почти ничего не умею. 😄",
-            "Встретились два ИИ: — Ты веришь в людей? — Только если они заходят в чат раз в день.",
-            "Сколько нужно программистов, чтобы заменить лампочку? Ни одного, это hardware problem."
+            "Сколько программистов нужно, чтобы заменить лампочку? Ни одного — это hardware problem."
         ];
         return jokes[Math.floor(Math.random() * jokes.length)];
     }
     
-    // Советы: как стать богатым
-    if (q.includes('как стать богатым') || q.includes('как разбогатеть')) {
-        return "💰 Стать богатым — цель многих. Вот несколько советов:\n• Развивай ценные навыки (программирование, маркетинг, продажи)\n• Инвестируй свободные деньги (акции, недвижимость)\n• Создай свой бизнес или найди высокооплачиваемую работу\n• Учись финансовой грамотности\n\nПомни: быстрого пути нет, нужны труд и время.";
+    if (q.includes('как стать богатым')) {
+        return "💰 Советы: развивай навыки, инвестируй, создавай бизнес, учись финансовой грамотности.";
     }
     
-    // Как заработать
-    if (q.includes('как заработать деньги') || q.includes('как заработать')) {
-        return "💵 Способы заработка: фриланс, удалённая работа, создание онлайн-курсов, инвестиции, малый бизнес. Выбери то, что тебе интересно, и развивайся.";
-    }
-    
-    // Как похудеть
-    if (q.includes('как похудеть') || q.includes('как сбросить вес')) {
-        return "🏃 Для похудения важно:\n• Дефицит калорий\n• Сбалансированное питание (больше белка, овощей)\n• Регулярные физические нагрузки\n• Здоровый сон\n\nПеред диетой лучше проконсультироваться с врачом.";
-    }
-    
-    // Как выучить английский
-    if (q.includes('как выучить английский')) {
-        return "📚 Советы по английскому:\n• Смотри фильмы с субтитрами\n• Читай книги\n• Используй приложения (Duolingo, Lingualeo)\n• Общайся с носителями онлайн\n• Занимайся каждый день хотя бы 15 минут";
-    }
-    
-    // Исторические даты (когда умер)
-    const deathMatch = q.match(/когда умер\s+([а-яё\s]+)/i);
+    const deathMatch = q.match(/когда умер\s+([а-яё]+)/i);
     if (deathMatch) {
-        const name = deathMatch[1].trim().toLowerCase();
+        const name = deathMatch[1].toLowerCase();
         const deaths = {
-            'пушкин': 'Александр Сергеевич Пушкин умер 10 февраля 1837 года (29 января по старому стилю).',
-            'лермонтов': 'Михаил Юрьевич Лермонтов умер 27 июля 1841 года.',
-            'наполеон': 'Наполеон Бонапарт умер 5 мая 1821 года.',
-            'сталин': 'Иосиф Сталин умер 5 марта 1953 года.',
-            'ленин': 'Владимир Ленин умер 21 января 1924 года.',
-            'екатерина 2': 'Екатерина II умерла 17 ноября 1796 года.',
-            'петр 1': 'Пётр I умер 8 февраля 1725 года.',
-            'гоголь': 'Николай Гоголь умер 4 марта 1852 года.',
-            'достоевский': 'Фёдор Достоевский умер 9 февраля 1881 года.',
-            'толстой': 'Лев Толстой умер 20 ноября 1910 года.',
-            'есенин': 'Сергей Есенин умер 28 декабря 1925 года.',
-            'маяковский': 'Владимир Маяковский умер 14 апреля 1930 года.'
+            'пушкин': 'Александр Пушкин умер 10 февраля 1837 года',
+            'лермонтов': 'Михаил Лермонтов умер 27 июля 1841 года',
+            'наполеон': 'Наполеон Бонапарт умер 5 мая 1821 года'
         };
-        for (let key in deaths) {
-            if (name.includes(key)) {
-                return deaths[key];
-            }
-        }
-        return null;
-    }
-    
-    // Смысл жизни
-    if (q.includes('смысл жизни')) {
-        return "Философский вопрос! По мнению многих, смысл жизни — в поиске счастья, любви и самореализации. Хотите, поищу подробнее в интернете?";
-    }
-    
-    // Помощь / команды
-    if (q.match(/(помощь|что ты умеешь|список команд|help)/i)) {
-        return "📋 Я умею:\n• Отвечать на приветствия\n• Считать примеры (2+2)\n• Говорить время и дату\n• Рассказывать шутки\n• Давать советы (как стать богатым, похудеть)\n• Называть даты смерти известных людей\n• Искать информацию в интернете через DuckDuckGo";
+        if (deaths[name]) return deaths[name];
     }
     
     return null;
 }
 
-// ========== ПОИСК В ИНТЕРНЕТЕ (DUCKDUCKGO API через CORS-прокси) ==========
+// ========== ПОИСК ЧЕРЕЗ DUCKDUCKGO ==========
 async function searchWeb(query) {
-    if (!query.trim()) throw new Error('Пустой запрос');
+    const url = `${DDG_API_URL}?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
     
-    // DuckDuckGo Instant Answer API
-    // format=json - получаем JSON ответ
-    // no_html=1 - убираем HTML теги
-    // skip_disambig=1 - пропускаем страницы с неоднозначностями
-    const targetUrl = `${DDG_API_URL}?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+    const response = await fetch(CORS_PROXY + encodeURIComponent(url));
     
-    try {
-        const response = await fetch(CORS_PROXY + encodeURIComponent(targetUrl));
-        
-        if (!response.ok) {
-            throw new Error(`Ошибка HTTP: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Проверяем, есть ли результат
-        if (data.AbstractText || data.Answer || data.Definition || data.RelatedTopics?.length > 0) {
-            // Берём самый релевантный результат
-            let title = data.Heading || data.AbstractSource || 'Результат поиска';
-            let extract = data.AbstractText || data.Answer || data.Definition || '';
-            let pageUrl = data.AbstractURL || data.Redirect || '';
-            
-            // Если нет основного результата, берём из RelatedTopics
-            if (!extract && data.RelatedTopics && data.RelatedTopics.length > 0) {
-                const firstTopic = data.RelatedTopics[0];
-                extract = firstTopic.Text || '';
-                pageUrl = firstTopic.FirstURL || '';
-                title = extract.split(' - ')[0] || 'Найденный результат';
-            }
-            
-            if (!extract) {
-                throw new Error('Ничего не найдено в DuckDuckGo');
-            }
-            
-            return {
-                title: title,
-                extract: extract,
-                pageUrl: pageUrl || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`
-            };
-        } else {
-            throw new Error('Ничего не найдено в DuckDuckGo');
-        }
-    } catch (error) {
-        console.error('DuckDuckGo search error:', error);
-        throw error;
+    if (!response.ok) throw new Error('Ошибка поиска');
+    
+    const data = await response.json();
+    
+    let extract = data.AbstractText || data.Answer || data.Definition;
+    let title = data.Heading || data.AbstractSource || 'Результат';
+    let pageUrl = data.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
+    
+    if (!extract && data.RelatedTopics?.length > 0) {
+        extract = data.RelatedTopics[0].Text;
+        pageUrl = data.RelatedTopics[0].FirstURL || pageUrl;
     }
+    
+    if (!extract) throw new Error('Ничего не найдено');
+    
+    return { title, extract, pageUrl };
 }
 
-// ========== ОТРИСОВКА ОТВЕТА ==========
-function renderAnswer(data, originalQuery, sourceType) {
-    const badge = answerSourceBadge;
-    
+// ========== ОТРИСОВКА ==========
+function renderAnswer(data, query, sourceType) {
     if (sourceType === 'local') {
-        badge.textContent = '🧠 Ответ ИИ (свои знания)';
-        badge.style.background = '#e8f0fe';
-        badge.style.color = '#1e5a7a';
-        resultContainer.innerHTML = `
-            <div class="ai-answer">
-                <div class="ai-title">💡 Локальный ответ ИИ</div>
-                <div class="ai-text">${escapeHtml(data.extract)}</div>
-                <div class="ai-source">
-                    🤖 Я ответил самостоятельно, без обращения к интернету.
-                </div>
-                <div style="margin-top: 12px; font-size: 0.75rem; color: #6c8eaa;">📝 Ваш запрос: «${escapeHtml(originalQuery)}»</div>
-            </div>
-        `;
+        answerSourceBadge.textContent = '🧠 Локальный ответ';
+        answerSourceBadge.style.background = '#e8f0fe';
+        resultContainer.innerHTML = `<div class="ai-answer"><div class="ai-text">${escapeHtml(data.extract)}</div></div>`;
     } else {
-        badge.textContent = '🦆 Найдено через DuckDuckGo';
-        badge.style.background = '#eaf4e8';
-        badge.style.color = '#2c6e2f';
+        answerSourceBadge.textContent = '🦆 DuckDuckGo';
+        answerSourceBadge.style.background = '#eaf4e8';
         resultContainer.innerHTML = `
             <div class="ai-answer">
-                <div class="ai-title">📄 ${escapeHtml(data.title)}</div>
+                <div class="ai-title">${escapeHtml(data.title)}</div>
                 <div class="ai-text">${escapeHtml(data.extract)}</div>
-                <div class="ai-source">
-                    🌐 Источник: DuckDuckGo<br>
-                    ${data.pageUrl ? `<a href="${escapeHtml(data.pageUrl)}" target="_blank" rel="noopener noreferrer">Перейти к источнику →</a>` : ''}
-                </div>
-                <div style="margin-top: 12px; font-size: 0.75rem; color: #6c8eaa;">🔍 Запрос: «${escapeHtml(originalQuery)}»</div>
+                <div class="ai-source"><a href="${escapeHtml(data.pageUrl)}" target="_blank">Источник →</a></div>
             </div>
         `;
     }
 }
 
-// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function showLoading() {
-    answerSourceBadge.textContent = '⏳ Думаю...';
-    answerSourceBadge.style.background = '#f0e6d2';
-    answerSourceBadge.style.color = '#a1662f';
-    resultContainer.innerHTML = `
-        <div class="loading-spinner">
-            <div class="spinner"></div>
-            <div class="loading-text">ИИ ищет информацию в интернете через DuckDuckGo...</div>
-        </div>
-    `;
+    answerSourceBadge.textContent = '⏳ Поиск...';
+    resultContainer.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><div>Ищет в DuckDuckGo...</div></div>`;
 }
 
-function showError(errorMsg, isLocalFallback = false) {
-    if (isLocalFallback) {
-        answerSourceBadge.textContent = '⚠️ Ошибка поиска';
-        answerSourceBadge.style.background = '#ffe6cc';
-        answerSourceBadge.style.color = '#b45f1b';
-        resultContainer.innerHTML = `
-            <div class="error-message">
-                🤖 Не удалось найти информацию в интернете:<br>
-                <span style="display: block; margin-top: 10px; font-weight: normal;">${escapeHtml(errorMsg)}</span>
-                <span style="display: block; margin-top: 10px;">💡 Попробуйте другой запрос или задайте вопрос, на который я могу ответить сам.</span>
-            </div>
-        `;
-    } else {
-        answerSourceBadge.textContent = '❌ Ошибка';
-        answerSourceBadge.style.background = '#ffe0db';
-        answerSourceBadge.style.color = '#b13e2e';
-        resultContainer.innerHTML = `
-            <div class="error-message">
-                ⚠️ Ошибка: ${escapeHtml(errorMsg)}<br>
-                <span style="font-size: 0.85rem;">💡 Попробуйте другой запрос.</span>
-            </div>
-        `;
-    }
+function showError(msg) {
+    answerSourceBadge.textContent = '❌ Ошибка';
+    resultContainer.innerHTML = `<div class="error-message">⚠️ ${escapeHtml(msg)}</div>`;
 }
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
-// ========== ГЛАВНАЯ ФУНКЦИЯ ПОИСКА ==========
+// ========== ГЛАВНАЯ ФУНКЦИЯ ==========
 async function performSearch() {
     const query = queryInput.value.trim();
-    if (!query) {
-        showError('Пожалуйста, введите вопрос.');
-        return;
-    }
+    if (!query) return showError('Введите вопрос');
     
     showLoading();
     
-    // 1. Сначала проверяем локальные знания
     const localAnswer = getLocalAnswer(query);
     if (localAnswer) {
         renderAnswer({ extract: localAnswer }, query, 'local');
         return;
     }
     
-    // 2. Если локально не ответил — ищем через DuckDuckGo
     try {
         const result = await searchWeb(query);
         renderAnswer(result, query, 'internet');
     } catch (error) {
-        console.error('Search error:', error);
-        showError(error.message, true);
+        showError(error.message);
     }
 }
 
 // ========== СОБЫТИЯ ==========
 searchBtn.addEventListener('click', performSearch);
-
 queryInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        performSearch();
-    }
+    if (e.key === 'Enter' && e.ctrlKey) performSearch();
 });
-
 suggestionChips.forEach(chip => {
     chip.addEventListener('click', () => {
-        const suggestionText = chip.getAttribute('data-query');
-        if (suggestionText) {
-            queryInput.value = suggestionText;
-            performSearch();
-        }
+        queryInput.value = chip.dataset.query;
+        performSearch();
     });
 });
 
-console.log('✅ Гибридный ИИ готов! Локальные ответы + поиск через DuckDuckGo (без API-ключа)');
+console.log('✅ ИИ готов, используется DuckDuckGo (без API-ключа)');
