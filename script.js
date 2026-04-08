@@ -1,6 +1,7 @@
-// ========== НАСТРОЙКА GOOGLE PSE (ваши данные) ==========
-const GOOGLE_CX = '33e260eedb53248e1';
-const GOOGLE_API_KEY = 'AIzaSyCzJuUfN1ktPNAZkvXbnugdLZT4Bd666_g';
+// ========== НАСТРОЙКА DUCKDUCKGO (без API-ключа) ==========
+// Используем бесплатный CORS-прокси для обхода ограничений DuckDuckGo
+const CORS_PROXY = 'https://corsproxy.io/?';
+const DDG_API_URL = 'https://api.duckduckgo.com/';
 
 // ========== DOM ЭЛЕМЕНТЫ ==========
 const searchBtn = document.getElementById('searchButton');
@@ -15,7 +16,7 @@ function getLocalAnswer(query) {
     
     // Приветствия
     if (q.match(/^(привет|здравствуй|здравствуйте|hello|hi|hey|добрый день|добрый вечер|доброе утро)/i)) {
-        return "Привет! Я гибридный ИИ. Могу поболтать, дать совет или найти информацию на добавленных сайтах. Чем помочь?";
+        return "Привет! Я гибридный ИИ. Могу поболтать, дать совет или найти информацию в интернете через DuckDuckGo. Чем помочь?";
     }
     
     // Прощания
@@ -35,7 +36,7 @@ function getLocalAnswer(query) {
     
     // Кто ты / о себе
     if (q.match(/(кто ты|твоё имя|расскажи о себе|что ты умеешь|твои возможности|откуда ты|кто тебя создал)/i)) {
-        return "Я — гибридный ИИ-помощник. Умею отвечать на простые вопросы сам (приветствия, математика, время, шутки, советы, даты), а если не знаю — ищу информацию на сайтах, которые добавил мой создатель. Чем могу помочь?";
+        return "Я — гибридный ИИ-помощник. Умею отвечать на простые вопросы сам (приветствия, математика, время, шутки, советы, даты), а если не знаю — ищу информацию в интернете через DuckDuckGo. Чем могу помочь?";
     }
     
     // Благодарности
@@ -127,48 +128,72 @@ function getLocalAnswer(query) {
                 return deaths[key];
             }
         }
-        return null; // не нашли — ищем в интернете
+        return null;
     }
     
     // Смысл жизни
     if (q.includes('смысл жизни')) {
-        return "Философский вопрос! По мнению многих, смысл жизни — в поиске счастья, любви и самореализации. Хотите, поищу подробнее на ваших сайтах?";
+        return "Философский вопрос! По мнению многих, смысл жизни — в поиске счастья, любви и самореализации. Хотите, поищу подробнее в интернете?";
     }
     
     // Помощь / команды
     if (q.match(/(помощь|что ты умеешь|список команд|help)/i)) {
-        return "📋 Я умею:\n• Отвечать на приветствия\n• Считать примеры (2+2)\n• Говорить время и дату\n• Рассказывать шутки\n• Давать советы (как стать богатым, похудеть)\n• Называть даты смерти известных людей\n• Искать информацию на сайтах, которые добавил мой создатель";
+        return "📋 Я умею:\n• Отвечать на приветствия\n• Считать примеры (2+2)\n• Говорить время и дату\n• Рассказывать шутки\n• Давать советы (как стать богатым, похудеть)\n• Называть даты смерти известных людей\n• Искать информацию в интернете через DuckDuckGo";
     }
     
-    // Если ничего не подошло — идём в интернет
     return null;
 }
 
-// ========== ПОИСК В ИНТЕРНЕТЕ (Google PSE по вашим сайтам) ==========
+// ========== ПОИСК В ИНТЕРНЕТЕ (DUCKDUCKGO API через CORS-прокси) ==========
 async function searchWeb(query) {
     if (!query.trim()) throw new Error('Пустой запрос');
     
-    const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(query)}`;
+    // DuckDuckGo Instant Answer API
+    // format=json - получаем JSON ответ
+    // no_html=1 - убираем HTML теги
+    // skip_disambig=1 - пропускаем страницы с неоднозначностями
+    const targetUrl = `${DDG_API_URL}?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
     
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Ошибка поиска');
+    try {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(targetUrl));
+        
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Проверяем, есть ли результат
+        if (data.AbstractText || data.Answer || data.Definition || data.RelatedTopics?.length > 0) {
+            // Берём самый релевантный результат
+            let title = data.Heading || data.AbstractSource || 'Результат поиска';
+            let extract = data.AbstractText || data.Answer || data.Definition || '';
+            let pageUrl = data.AbstractURL || data.Redirect || '';
+            
+            // Если нет основного результата, берём из RelatedTopics
+            if (!extract && data.RelatedTopics && data.RelatedTopics.length > 0) {
+                const firstTopic = data.RelatedTopics[0];
+                extract = firstTopic.Text || '';
+                pageUrl = firstTopic.FirstURL || '';
+                title = extract.split(' - ')[0] || 'Найденный результат';
+            }
+            
+            if (!extract) {
+                throw new Error('Ничего не найдено в DuckDuckGo');
+            }
+            
+            return {
+                title: title,
+                extract: extract,
+                pageUrl: pageUrl || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`
+            };
+        } else {
+            throw new Error('Ничего не найдено в DuckDuckGo');
+        }
+    } catch (error) {
+        console.error('DuckDuckGo search error:', error);
+        throw error;
     }
-    
-    const data = await response.json();
-    
-    if (!data.items || data.items.length === 0) {
-        throw new Error('Ничего не найдено на добавленных сайтах');
-    }
-    
-    const first = data.items[0];
-    return {
-        title: first.title,
-        extract: first.snippet,
-        pageUrl: first.link
-    };
 }
 
 // ========== ОТРИСОВКА ОТВЕТА ==========
@@ -190,7 +215,7 @@ function renderAnswer(data, originalQuery, sourceType) {
             </div>
         `;
     } else {
-        badge.textContent = '🔍 Найдено на ваших сайтах (Google PSE)';
+        badge.textContent = '🦆 Найдено через DuckDuckGo';
         badge.style.background = '#eaf4e8';
         badge.style.color = '#2c6e2f';
         resultContainer.innerHTML = `
@@ -198,7 +223,8 @@ function renderAnswer(data, originalQuery, sourceType) {
                 <div class="ai-title">📄 ${escapeHtml(data.title)}</div>
                 <div class="ai-text">${escapeHtml(data.extract)}</div>
                 <div class="ai-source">
-                    🌐 Источник: <a href="${escapeHtml(data.pageUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(data.pageUrl)}</a>
+                    🌐 Источник: DuckDuckGo<br>
+                    ${data.pageUrl ? `<a href="${escapeHtml(data.pageUrl)}" target="_blank" rel="noopener noreferrer">Перейти к источнику →</a>` : ''}
                 </div>
                 <div style="margin-top: 12px; font-size: 0.75rem; color: #6c8eaa;">🔍 Запрос: «${escapeHtml(originalQuery)}»</div>
             </div>
@@ -214,7 +240,7 @@ function showLoading() {
     resultContainer.innerHTML = `
         <div class="loading-spinner">
             <div class="spinner"></div>
-            <div class="loading-text">ИИ анализирует вопрос...</div>
+            <div class="loading-text">ИИ ищет информацию в интернете через DuckDuckGo...</div>
         </div>
     `;
 }
@@ -226,7 +252,7 @@ function showError(errorMsg, isLocalFallback = false) {
         answerSourceBadge.style.color = '#b45f1b';
         resultContainer.innerHTML = `
             <div class="error-message">
-                🤖 Не удалось найти информацию на добавленных сайтах:<br>
+                🤖 Не удалось найти информацию в интернете:<br>
                 <span style="display: block; margin-top: 10px; font-weight: normal;">${escapeHtml(errorMsg)}</span>
                 <span style="display: block; margin-top: 10px;">💡 Попробуйте другой запрос или задайте вопрос, на который я могу ответить сам.</span>
             </div>
@@ -271,7 +297,7 @@ async function performSearch() {
         return;
     }
     
-    // 2. Если локально не ответил — ищем на ваших сайтах через Google PSE
+    // 2. Если локально не ответил — ищем через DuckDuckGo
     try {
         const result = await searchWeb(query);
         renderAnswer(result, query, 'internet');
@@ -301,4 +327,4 @@ suggestionChips.forEach(chip => {
     });
 });
 
-console.log('✅ Гибридный ИИ готов! Локальные ответы + поиск по вашим сайтам через Google PSE');
+console.log('✅ Гибридный ИИ готов! Локальные ответы + поиск через DuckDuckGo (без API-ключа)');
